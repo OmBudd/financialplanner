@@ -29,18 +29,20 @@
     position: relative;
     display: inline-block;
     cursor: pointer;
+    vertical-align: middle;
+    margin-left: 8px;
 }
 
 .tooltip .tooltip-text {
     visibility: hidden;
-    width: 200px;
+    width: 250px;
     background-color: #1e293b;
     color: #e2e8f0;
     text-align: center;
     border-radius: 6px;
     padding: 8px;
     position: absolute;
-    z-index: 1;
+    z-index: 10;
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
@@ -58,7 +60,17 @@
     opacity: 1;
 }
 
-/* Input field focus styles */
+/* Input field styling */
+.form-group {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.form-group .relative {
+    display: flex;
+    align-items: center;
+}
+
 input:focus, textarea:focus {
     outline: 2px solid #26c6b3;
     box-shadow: 0 0 0 2px rgba(38, 198, 179, 0.2);
@@ -86,5 +98,9 @@ input:focus, textarea:focus {
     
     section {
         padding: 15px;
+    }
+    
+    .tooltip .tooltip-text {
+        width: 200px;
     }
 } 
