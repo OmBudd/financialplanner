@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get form and reset button elements
     const form = document.getElementById('finance-form');
     const resetButton = document.getElementById('reset-btn');
+    const toggleButton = document.getElementById('theme-toggle');
 
     // Add event listener for form submission
     form.addEventListener('submit', function(e) {
@@ -10,11 +11,19 @@ document.addEventListener('DOMContentLoaded', function() {
         calculateFinances();
     });
 
+    // Add event listener for theme toggle
+    toggleButton.addEventListener('click', function() {
+        document.body.classList.toggle('light-mode');
+        toggleButton.textContent = document.body.classList.contains('light-mode') ? 'Dark Mode' : 'Light Mode';
+    });
+
     // Add event listener for reset button
     resetButton.addEventListener('click', function() {
-        form.reset();
-        document.getElementById('results').style.display = 'none';
-        document.getElementById('instructions').style.display = 'none';
+        if (confirm('Reset all data?')) {
+            form.reset();
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none';
+        }
     });
 
     // Function to calculate finances
@@ -24,7 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalComp = parseFloat(document.getElementById('total-comp').value);
         const age = parseInt(document.getElementById('age').value);
         const taxRate = parseFloat(document.getElementById('tax-rate').value);
-        const expenses = parseFloat(document.getElementById('expenses').value);
+        const coreExpenses = parseFloat(document.getElementById('core-expenses').value);
+        const extraExpenses = parseFloat(document.getElementById('extra-expenses').value);
+        const expenses = coreExpenses + extraExpenses;
         const expensePrefs = document.getElementById('expense-prefs').value;
         
         // Get selected estimate type and aggression level
@@ -32,8 +43,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const aggressionLevel = document.querySelector('input[name="aggression"]:checked').value;
 
         // Validation
-        if (salary <= 0 || totalComp <= 0 || age < 18 || taxRate < 0 || taxRate > 100 || expenses <= 0) {
+        if (salary <= 0 || totalComp <= 0 || age < 18 || taxRate < 0 || taxRate > 100) {
             alert('Please enter valid numbers for all fields!');
+            return;
+        }
+
+        if (coreExpenses <= 0 || extraExpenses < 0) {
+            alert('Core expenses must be positive and extra expenses must be zero or positive!');
             return;
         }
 
@@ -70,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const investable = afterTaxIncome - expenses;
         
         if (investable <= 0) {
-            alert('Your expenses exceed your income. Please adjust your numbers.');
+            alert('Your core + extra expenses exceed your income—cut back a bit!');
             return;
         }
 
@@ -113,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fireYears = Math.round(fireYears * 10) / 10;
         
         // Display results
-        displayResults(afterTaxIncome, expenses, investable, retirement, fireYears, fireNumber, expensePrefs);
+        displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, expensePrefs);
         
         // Display investment instructions
         displayInstructions(investable, stockPercent, bondPercent, cashPercent);
@@ -123,63 +139,99 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to display results
-    function displayResults(afterTaxIncome, expenses, investable, retirement, fireYears, fireNumber, expensePrefs) {
+    function displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, expensePrefs) {
         const resultsSection = document.getElementById('results');
         resultsSection.style.display = 'block';
+        resultsSection.classList.add('fade-in');
+        const expenses = coreExpenses + extraExpenses;
         resultsSection.innerHTML = `
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Your Financial Plan</h2>
+            <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">Your Financial Plan</h2>
             
             <div class="mb-8">
-                <h3 class="text-xl font-medium mb-4 text-[#2dd4bf]">Monthly Budget</h3>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <p class="py-2 border-b border-gray-200"><span class="font-medium">Monthly Take-Home:</span> <span class="float-right">$${afterTaxIncome.toFixed(2)}</span></p>
-                    <p class="py-2 border-b border-gray-200"><span class="font-medium">Expenses:</span> <span class="float-right">$${expenses.toFixed(2)}</span></p>
-                    <p class="py-2 text-[#2dd4bf] font-medium"><span>Available to Invest:</span> <span class="float-right">$${investable.toFixed(2)}</span></p>
+                <h3 class="text-xl font-medium mb-4 text-[#26c6b3]">Monthly Budget</h3>
+                <div class="bg-[#475569] p-4 rounded-lg">
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Monthly Take-Home:</span> <span class="float-right">$${afterTaxIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Core Expenses:</span> <span class="float-right">$${coreExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Extra Expenses:</span> <span class="float-right">$${extraExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
+                    <p class="py-2 text-[#26c6b3] font-medium"><span>Available to Invest:</span> <span class="float-right">$${investable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
                 </div>
-                <p class="mt-2 text-gray-600 text-sm">Based on your preferences (${expensePrefs}), remember to tweak your budget monthly!</p>
+                <canvas id="budgetPie" class="mt-4 h-40"></canvas>
+                <p class="mt-2 text-sm">Based on your preferences (${expensePrefs}), tweak your extra spending for more fun or savings!</p>
             </div>
             
             <div class="mb-8">
-                <h3 class="text-xl font-medium mb-4 text-[#2dd4bf]">Retirement Projection</h3>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <p class="py-2 border-b border-gray-200"><span class="font-medium">At age 65, your portfolio could be:</span> <span class="float-right">$${retirement.toFixed(2)}</span></p>
-                    <p class="py-2 border-b border-gray-200"><span class="font-medium">FIRE Number (25x annual expenses):</span> <span class="float-right">$${fireNumber.toFixed(2)}</span></p>
-                    <p class="py-2 text-[#2dd4bf] font-medium"><span>FIRE possible in:</span> <span class="float-right">${fireYears} years</span></p>
+                <h3 class="text-xl font-medium mb-4 text-[#26c6b3]">Retirement Projection</h3>
+                <div class="bg-[#475569] p-4 rounded-lg">
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">At age 65, your portfolio could be:</span> <span class="float-right">$${retirement.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number (25x annual expenses):</span> <span class="float-right">$${fireNumber.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
+                    <p class="py-2 text-[#26c6b3] font-medium"><span>FIRE possible in:</span> <span class="float-right">${fireYears} years</span></p>
                 </div>
-                <p class="mt-2 text-gray-600 text-sm">FIRE means saving enough to live off 4% of your portfolio yearly. Your portfolio grows through the power of compounding!</p>
+                <p class="mt-2 text-sm">FIRE means saving enough to live off 4% of your portfolio yearly. Your portfolio grows through the power of compounding!</p>
             </div>
             
             <div>
-                <h3 class="text-xl font-medium mb-4 text-[#2dd4bf]">Portfolio Growth Over Time</h3>
+                <h3 class="text-xl font-medium mb-4 text-[#26c6b3]">Portfolio Growth Over Time</h3>
                 <div class="h-64">
                     <canvas id="growthChart"></canvas>
                 </div>
             </div>
         `;
+
+        // Create budget pie chart
+        const pieCtx = document.getElementById('budgetPie').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Core Expenses', 'Extra Expenses', 'Investable'],
+                datasets: [{ 
+                    data: [coreExpenses, extraExpenses, investable], 
+                    backgroundColor: ['#f87171', '#fbbf24', '#26c6b3'] 
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     // Function to display investment instructions
     function displayInstructions(investable, stockPercent, bondPercent, cashPercent) {
         const instructionsSection = document.getElementById('instructions');
         instructionsSection.style.display = 'block';
+        instructionsSection.classList.add('fade-in');
         instructionsSection.innerHTML = `
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Set Up Your Investments</h2>
+            <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">Set Up Your Investments</h2>
             
             <ol class="list-decimal pl-6 space-y-4">
-                <li class="pl-2">Go to <a href="https://www.fidelity.com" target="_blank" class="text-[#2dd4bf] hover:underline">fidelity.com</a> and click 'Open an Account' (Brokerage Account).</li>
-                <li class="pl-2">Deposit your monthly investable amount ($${investable.toFixed(2)}).</li>
-                <li class="pl-2">Buy VTI (stocks) for ${stockPercent}% of your portfolio—low-cost ETF that tracks the entire US stock market!</li>
-                <li class="pl-2">Buy US Treasuries (bonds) for ${bondPercent}%—safe and steady returns.</li>
-                ${cashPercent > 0 ? `<li class="pl-2">Keep ${cashPercent}% in cash or a high-yield savings account.</li>` : ''}
-                <li class="pl-2">Set up automatic investments monthly to make saving effortless!</li>
+                <li class="pl-2">Go to <a href="https://www.fidelity.com" target="_blank" class="text-[#26c6b3] hover:underline">fidelity.com</a> and click 'Open an Account' (Brokerage Account).</li>
+                <li class="pl-2">Link your bank account: log into your bank (e.g., Chase), find 'Transfers,' and add Fidelity (routing/account numbers from Fidelity).</li>
+                <li class="pl-2">Set up payroll: in your job's HR portal, split direct deposit—${stockPercent + bondPercent}% to Fidelity, ${cashPercent}% to your bank.</li>
+                <li class="pl-2">Deposit $${investable.toLocaleString('en-US', { minimumFractionDigits: 2 })} monthly into Fidelity.</li>
+                <li class="pl-2">Buy VTI (stocks) for ${stockPercent}%—search 'VTI,' enter amount, set to repeat monthly.</li>
+                <li class="pl-2">Buy US Treasuries (bonds) for ${bondPercent}%—search 'Treasuries,' pick a term (e.g., 10-year), automate it.</li>
+                ${cashPercent > 0 ? `<li class="pl-2">Keep ${cashPercent}% in your bank or Fidelity cash account.</li>` : ''}
+                <li class="pl-2">In Fidelity, go to 'Automatic Investments,' set VTI and Treasuries to buy monthly with your deposit.</li>
             </ol>
             
-            <div class="mt-6 bg-blue-50 p-4 rounded-lg">
-                <p class="text-blue-800"><strong>Pro Tip:</strong> VTI is a total stock market ETF—great for beginners. Want more diversification? Add VXUS (international stocks) too!</p>
+            <div class="mt-6 bg-[#2a384d] p-4 rounded-lg">
+                <p class="text-[#26c6b3]"><strong>Pro Tip:</strong> VTI tracks the US market—perfect for growth! Add VXUS for global stocks if you want to spread your bets further.</p>
             </div>
             
             <div class="mt-6">
-                <p class="text-gray-700">This simple 3-fund portfolio (stocks, bonds, cash) is all you need to start building wealth. Stay the course during market ups and downs!</p>
+                <p>This simple 3-fund portfolio (stocks, bonds, cash) is all you need to start building wealth. Stay the course during market ups and downs!</p>
             </div>
         `;
     }
@@ -236,8 +288,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: 'Portfolio Value',
                         data: portfolioValues,
-                        borderColor: '#2dd4bf',
-                        backgroundColor: 'rgba(45, 212, 191, 0.1)',
+                        borderColor: '#26c6b3',
+                        backgroundColor: 'rgba(38, 198, 179, 0.1)',
                         tension: 0.3,
                         fill: true
                     },
@@ -259,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '$' + value.toLocaleString('en-US');
                             }
                         }
                     }
@@ -268,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2 });
                             }
                         }
                     }
