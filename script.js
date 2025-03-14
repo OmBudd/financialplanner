@@ -5,16 +5,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetButton = document.getElementById('reset-btn');
     const toggleButton = document.getElementById('theme-toggle');
 
+    // Add theme toggle functionality
+    toggleButton.addEventListener('click', function() {
+        document.body.classList.toggle('light-mode');
+        toggleButton.textContent = document.body.classList.contains('light-mode') ? 'Dark Mode' : 'Light Mode';
+    });
+
     // Add event listener for form submission
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         calculateFinances();
-    });
-
-    // Add event listener for theme toggle
-    toggleButton.addEventListener('click', function() {
-        document.body.classList.toggle('light-mode');
-        toggleButton.textContent = document.body.classList.contains('light-mode') ? 'Dark Mode' : 'Light Mode';
     });
 
     // Add event listener for reset button
@@ -23,14 +23,24 @@ document.addEventListener('DOMContentLoaded', function() {
             form.reset();
             document.getElementById('results').style.display = 'none';
             document.getElementById('instructions').style.display = 'none';
+            
+            // Clear any existing charts to prevent memory leaks
+            if (window.budgetPieChart) {
+                window.budgetPieChart.destroy();
+                window.budgetPieChart = null;
+            }
+            if (window.growthChartInstance) {
+                window.growthChartInstance.destroy();
+                window.growthChartInstance = null;
+            }
         }
     });
 
     // Function to calculate finances
     function calculateFinances() {
         // Get values from form fields
-        const salary = parseFloat(document.getElementById('salary').value);
         const totalComp = parseFloat(document.getElementById('total-comp').value);
+        const startingNetWorth = parseFloat(document.getElementById('starting-networth').value) || 0;
         const age = parseInt(document.getElementById('age').value);
         const taxRate = parseFloat(document.getElementById('tax-rate').value);
         const coreExpenses = parseFloat(document.getElementById('core-expenses').value);
@@ -38,12 +48,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const expenses = coreExpenses + extraExpenses;
         const expensePrefs = document.getElementById('expense-prefs').value;
         
-        // Get selected estimate type and aggression level
-        const estimateType = document.querySelector('input[name="estimate"]:checked').value;
+        // Get selected return model and aggression level
+        const returnModel = document.querySelector('input[name="estimate"]:checked').value;
         const aggressionLevel = document.querySelector('input[name="aggression"]:checked').value;
 
         // Validation
-        if (salary <= 0 || totalComp <= 0 || age < 18 || taxRate < 0 || taxRate > 100) {
+        if (totalComp <= 0 || age < 18 || taxRate < 0 || taxRate > 100) {
             alert('Please enter valid numbers for all fields!');
             return;
         }
@@ -53,14 +63,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Constants based on estimate type
-        let stockReturn, bondReturn;
-        if (estimateType === 'risk') {
+        // Constants based on return model
+        let stockReturn, bondReturn, annualRaisePercent;
+        if (returnModel === 'risk') { // Current Rates
             stockReturn = 0.115; // 11.5%
             bondReturn = 0.04;   // 4%
+            annualRaisePercent = 0.05; // 5% annual raise
         } else { // underestimate
             stockReturn = 0.095; // 9.5%
             bondReturn = 0.02;   // 2%
+            annualRaisePercent = 0.03; // 3% annual raise
         }
 
         // Portfolio allocation based on aggression level
@@ -79,17 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cashPercent = 5;
         }
 
-        // Calculate monthly after-tax income
-        const afterTaxIncome = (totalComp * (1 - taxRate / 100)) / 12;
-        
-        // Calculate investable amount (after expenses)
-        const investable = afterTaxIncome - expenses;
-        
-        if (investable <= 0) {
-            alert('Your core + extra expenses exceed your income—cut back a bit!');
-            return;
-        }
-
         // Calculate weighted return based on portfolio allocation
         const weightedReturn = (stockReturn * stockPercent/100) + 
                               (bondReturn * bondPercent/100) + 
@@ -98,52 +99,123 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate years until retirement age (65)
         const yearsToRetire = Math.max(0, 65 - age);
         
-        // Calculate portfolio growth using compound interest formula
-        // A = P(1 + r)^t where P is principal, r is rate, t is time
-        const annualInvestment = investable * 12;
-        let retirement = 0;
+        // Calculate portfolio growth using compound interest formula with annual raises
+        let portfolioValue = startingNetWorth;
+        let currentTotalComp = totalComp;
+        let totalInvested = 0;
+        let yearlyData = [];
         
-        // Future value of a series of payments (annuity formula)
-        // FV = PMT × ((1 + r)^t - 1) / r
-        if (weightedReturn > 0) {
-            retirement = annualInvestment * ((Math.pow(1 + weightedReturn, yearsToRetire) - 1) / weightedReturn);
-        } else {
-            retirement = annualInvestment * yearsToRetire;
+        for (let year = 0; year <= yearsToRetire; year++) {
+            // Calculate monthly after-tax income for this year
+            const afterTaxIncome = (currentTotalComp * (1 - taxRate / 100)) / 12;
+            
+            // Calculate investable amount (after expenses)
+            const investable = afterTaxIncome - expenses;
+            
+            if (investable <= 0 && year === 0) {
+                alert('Your core + extra expenses exceed your income—cut back a bit!');
+                return;
+            }
+            
+            // Add annual investment and apply returns
+            if (year > 0) {
+                // Only invest if there's money to invest
+                if (investable > 0) {
+                    const annualInvestment = investable * 12;
+                    totalInvested += annualInvestment;
+                    portfolioValue = (portfolioValue + annualInvestment) * (1 + weightedReturn);
+                } else {
+                    // Just apply returns to existing portfolio
+                    portfolioValue = portfolioValue * (1 + weightedReturn);
+                }
+            }
+            
+            // Track data for the chart
+            yearlyData.push({
+                year: year,
+                portfolioValue: portfolioValue,
+                totalInvested: totalInvested,
+                totalComp: currentTotalComp
+            });
+            
+            // Apply raise for next year
+            currentTotalComp *= (1 + annualRaisePercent);
         }
-
+        
+        // Get final values for display
+        const retirement = portfolioValue;
+        const finalInvestable = (currentTotalComp * (1 - taxRate / 100)) / 12 - expenses;
+        
         // Calculate FIRE number (25x annual expenses - 4% withdrawal rate)
         const fireNumber = expenses * 12 * 25;
         
-        // Calculate years to reach FIRE
-        // n = ln(FV/P + PMT/P*r) / ln(1+r) where FV is FIRE number, P is current savings (0), PMT is annual investment
+        // Find year when portfolio value exceeds FIRE number
         let fireYears = 0;
-        if (weightedReturn > 0) {
-            fireYears = Math.log(fireNumber / annualInvestment * weightedReturn + 1) / Math.log(1 + weightedReturn);
-        } else if (annualInvestment > 0) {
-            fireYears = fireNumber / annualInvestment;
-        } else {
-            fireYears = Infinity;
+        for (let i = 0; i < yearlyData.length; i++) {
+            if (yearlyData[i].portfolioValue >= fireNumber) {
+                fireYears = i;
+                break;
+            }
         }
         
-        // Round to 1 decimal place
-        fireYears = Math.round(fireYears * 10) / 10;
+        // If we never reach FIRE within the timeline
+        if (fireYears === 0 && retirement < fireNumber) {
+            // Estimate based on growth rate
+            if (weightedReturn > 0 && finalInvestable > 0) {
+                const annualInvestment = finalInvestable * 12;
+                const fireYearsEstimate = Math.log(fireNumber / portfolioValue) / Math.log(1 + weightedReturn);
+                // Add years we've already simulated
+                fireYears = yearsToRetire + Math.ceil(fireYearsEstimate);
+            } else {
+                fireYears = Infinity;
+            }
+        }
         
-        // Display results
-        displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, expensePrefs);
+        // Display results including first year's investable amount for budget display
+        const firstYearAfterTaxIncome = (totalComp * (1 - taxRate / 100)) / 12;
+        const firstYearInvestable = firstYearAfterTaxIncome - expenses;
+        
+        displayResults(
+            firstYearAfterTaxIncome, 
+            coreExpenses, 
+            extraExpenses, 
+            firstYearInvestable, 
+            retirement, 
+            fireYears, 
+            fireNumber, 
+            expensePrefs,
+            returnModel,
+            annualRaisePercent
+        );
         
         // Display investment instructions
-        displayInstructions(investable, stockPercent, bondPercent, cashPercent);
+        displayInstructions(firstYearInvestable, stockPercent, bondPercent, cashPercent);
         
-        // Create and display the growth chart
-        createGrowthChart(annualInvestment, weightedReturn, yearsToRetire);
+        // Create and display the growth chart using the yearly data
+        createGrowthChart(yearlyData, weightedReturn, yearsToRetire);
     }
 
     // Function to display results
-    function displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, expensePrefs) {
+    function displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, expensePrefs, returnModel, annualRaisePercent) {
         const resultsSection = document.getElementById('results');
         resultsSection.style.display = 'block';
         resultsSection.classList.add('fade-in');
         const expenses = coreExpenses + extraExpenses;
+        
+        // Clear existing chart if it exists to prevent duplicates
+        if (window.budgetPieChart) {
+            window.budgetPieChart.destroy();
+            window.budgetPieChart = null;
+        }
+        
+        // Format fireYears to be user-friendly
+        let fireYearsText = fireYears;
+        if (fireYears === Infinity) {
+            fireYearsText = "Not possible with current expenses";
+        } else if (fireYears > 80) {
+            fireYearsText = "80+ (consider reducing expenses)";
+        }
+        
         resultsSection.innerHTML = `
             <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">Your Financial Plan</h2>
             
@@ -155,7 +227,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Extra Expenses:</span> <span class="float-right">$${extraExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
                     <p class="py-2 text-[#26c6b3] font-medium"><span>Available to Invest:</span> <span class="float-right">$${investable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
                 </div>
-                <canvas id="budgetPie" class="mt-4 h-40"></canvas>
+                <div class="mt-4 h-60"> <!-- Fixed height container for the chart -->
+                    <canvas id="budgetPie"></canvas>
+                </div>
                 <p class="mt-2 text-sm">Based on your preferences (${expensePrefs}), tweak your extra spending for more fun or savings!</p>
             </div>
             
@@ -164,9 +238,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="bg-[#475569] p-4 rounded-lg">
                     <p class="py-2 border-b border-[#64748b]"><span class="font-medium">At age 65, your portfolio could be:</span> <span class="float-right">$${retirement.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
                     <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number (25x annual expenses):</span> <span class="float-right">$${fireNumber.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
-                    <p class="py-2 text-[#26c6b3] font-medium"><span>FIRE possible in:</span> <span class="float-right">${fireYears} years</span></p>
+                    <p class="py-2 text-[#26c6b3] font-medium"><span>FIRE possible in:</span> <span class="float-right">${fireYearsText} years</span></p>
                 </div>
-                <p class="mt-2 text-sm">FIRE means saving enough to live off 4% of your portfolio yearly. Your portfolio grows through the power of compounding!</p>
+                <p class="mt-2 text-sm">FIRE means saving enough to live off 4% of your portfolio yearly. We've factored in an annual ${(annualRaisePercent * 100).toFixed(1)}% salary increase based on your selected return model (${returnModel === 'risk' ? 'Current Rates' : 'Underestimate'}).</p>
             </div>
             
             <div>
@@ -177,34 +251,37 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
 
-        // Create budget pie chart
-        const pieCtx = document.getElementById('budgetPie').getContext('2d');
-        new Chart(pieCtx, {
-            type: 'pie',
-            data: {
-                labels: ['Core Expenses', 'Extra Expenses', 'Investable'],
-                datasets: [{ 
-                    data: [coreExpenses, extraExpenses, investable], 
-                    backgroundColor: ['#f87171', '#fbbf24', '#26c6b3'] 
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.raw;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((value / total) * 100);
-                                return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${percentage}%)`;
+        // Wait briefly to ensure the canvas is in the DOM before creating the chart
+        setTimeout(() => {
+            // Create budget pie chart
+            const pieCtx = document.getElementById('budgetPie').getContext('2d');
+            window.budgetPieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Core Expenses', 'Extra Expenses', 'Investable'],
+                    datasets: [{ 
+                        data: [coreExpenses, extraExpenses, investable], 
+                        backgroundColor: ['#f87171', '#fbbf24', '#26c6b3'] 
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${percentage}%)`;
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        }, 100);
     }
 
     // Function to display investment instructions
@@ -236,50 +313,36 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
 
-    // Function to create growth chart
-    function createGrowthChart(annualInvestment, weightedReturn, years) {
+    // Function to create growth chart with updated yearly data
+    function createGrowthChart(yearlyData, weightedReturn, years) {
         // Load Chart.js from CDN if not already loaded
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
             script.onload = function() {
-                generateChart(annualInvestment, weightedReturn, years);
+                generateChart(yearlyData, weightedReturn, years);
             };
             document.head.appendChild(script);
         } else {
-            generateChart(annualInvestment, weightedReturn, years);
+            generateChart(yearlyData, weightedReturn, years);
         }
     }
 
-    function generateChart(annualInvestment, weightedReturn, years) {
-        const ctx = document.getElementById('growthChart').getContext('2d');
-        
-        // Generate data points for the chart
-        const labels = [];
-        const portfolioValues = [];
-        const contributions = [];
-        
-        let totalContribution = 0;
-        let portfolioValue = 0;
-        
-        for (let year = 0; year <= Math.min(years, 50); year++) {
-            labels.push(`Year ${year}`);
-            
-            if (year > 0) {
-                // Add annual investment and apply returns
-                totalContribution += annualInvestment;
-                portfolioValue = (portfolioValue + annualInvestment) * (1 + weightedReturn);
-            }
-            
-            contributions.push(totalContribution);
-            portfolioValues.push(portfolioValue);
-        }
-        
-        // Create the chart
+    function generateChart(yearlyData, weightedReturn, years) {
+        // Clear existing chart if it exists
         if (window.growthChartInstance) {
             window.growthChartInstance.destroy();
+            window.growthChartInstance = null;
         }
         
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        
+        // Extract data for the chart
+        const labels = yearlyData.map(data => `Year ${data.year}`);
+        const portfolioValues = yearlyData.map(data => data.portfolioValue);
+        const totalInvested = yearlyData.map(data => data.totalInvested);
+        
+        // Create the chart
         window.growthChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
@@ -295,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     {
                         label: 'Total Contributions',
-                        data: contributions,
+                        data: totalInvested,
                         borderColor: '#9f7aea',
                         backgroundColor: 'transparent',
                         borderDashed: [5, 5],
