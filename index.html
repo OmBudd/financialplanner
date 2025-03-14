@@ -21,41 +21,41 @@
     <div class="container mx-auto px-4 py-8 max-w-[800px]">
         <section id="welcome" class="bg-[#334155] rounded-[10px] p-6 shadow-md mb-8">
             <h1 class="text-3xl font-bold mb-4 text-[#26c6b3]">Financial Freedom for New Grads</h1>
-            <p class="text-lg">Hey there! Just graduated? Let's plan your finances and explore FIRE—Financial Independence, Retire Early!</p>
+            <p class="text-lg">Ready to take control of your money? Let's plan your finances and explore FIRE—Financial Independence, Retire Early!</p>
         </section>
 
         <section id="intro" class="bg-[#334155] rounded-[10px] p-6 shadow-md mb-8 fade-in">
             <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">What's This All About?</h2>
-            <p class="mb-4">Hey, new grad! This tool helps you take control of your money like a pro—even if you're starting from zero. We use FIRE (Financial Independence, Retire Early), a simple idea: save and invest early, let your money grow, and retire when you want!</p>
-            <p class="mb-4">Imagine you're 12: you earn allowance (salary), spend some (expenses), and save the rest in a piggy bank (investments) that magically grows over time. Here, you'll see how much to save, invest in stocks/bonds, and hit your goals—easy peasy!</p>
-            <p>The best part? Starting right after college means your money has decades to grow. Even small investments now can turn into huge amounts later!</p>
+            <p class="mb-4">FIRE is simple but powerful: save early, invest wisely, and retire when you want—not when someone tells you to. This calculator shows how much you need to save now to buy your freedom later.</p>
+            <p class="mb-4">The magic is in compound interest—your money earns money, and that money earns more money. Starting right after college gives your investments decades to grow exponentially.</p>
+            <p>Even modest investments now can turn into substantial wealth later. The earlier you start, the less you need to save overall.</p>
         </section>
 
         <section id="input-form" class="bg-[#334155] rounded-[10px] p-6 shadow-md mb-8">
             <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">Tell Us About Your Finances</h2>
             <form id="finance-form" class="space-y-6">
                 <div class="form-group">
-                    <label for="salary" class="block mb-2 font-medium">Your annual starting salary before taxes</label>
+                    <label for="total-comp" class="block mb-2 font-medium">Total yearly compensation</label>
                     <div class="relative">
-                        <input type="number" id="salary" min="0" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 75000">
-                        <div class="tooltip ml-2 inline-block">
+                        <input type="number" id="total-comp" min="0" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 85000">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
-                            <span class="tooltip-text">Check your offer letter or ask HR!</span>
+                            <span class="tooltip-text">Add base salary + annual bonus + stock value (RSUs). For RSUs, divide total grant value by vesting years. Tech grads: don't forget to include this!</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="total-comp" class="block mb-2 font-medium">Total yearly comp, including bonuses/RSUs</label>
+                    <label for="starting-networth" class="block mb-2 font-medium">Starting net worth</label>
                     <div class="relative">
-                        <input type="number" id="total-comp" min="0" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 85000">
-                        <div class="tooltip ml-2 inline-block">
+                        <input type="number" id="starting-networth" min="0" value="0" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 10000">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
-                            <span class="tooltip-text">Add salary + bonus + stock value (if any). Tech grads, include RSUs!</span>
+                            <span class="tooltip-text">Include sign-on bonuses, money in your bank account, investments, and any other assets you have when starting your job.</span>
                         </div>
                     </div>
                 </div>
@@ -64,7 +64,7 @@
                     <label for="age" class="block mb-2 font-medium">Your age when you start working</label>
                     <div class="relative">
                         <input type="number" id="age" min="18" max="100" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 22">
-                        <div class="tooltip ml-2 inline-block">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
@@ -77,7 +77,7 @@
                     <label for="tax-rate" class="block mb-2 font-medium">Your estimated tax rate (%)</label>
                     <div class="relative">
                         <input type="number" id="tax-rate" min="0" max="100" step="0.1" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 25">
-                        <div class="tooltip ml-2 inline-block">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
@@ -90,7 +90,7 @@
                     <label for="core-expenses" class="block mb-2 font-medium">Your core monthly spending</label>
                     <div class="relative">
                         <input type="number" id="core-expenses" min="0" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 1800">
-                        <div class="tooltip ml-2 inline-block">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
@@ -103,7 +103,7 @@
                     <label for="extra-expenses" class="block mb-2 font-medium">Your extra monthly spending</label>
                     <div class="relative">
                         <input type="number" id="extra-expenses" min="0" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., 700">
-                        <div class="tooltip ml-2 inline-block">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
@@ -116,7 +116,7 @@
                     <label for="expense-prefs" class="block mb-2 font-medium">What's your spending style?</label>
                     <div class="relative">
                         <textarea id="expense-prefs" rows="3" required class="w-full p-3 bg-[#475569] border border-[#64748b] rounded-lg text-white" placeholder="e.g., I want $200 for vacations, $100 for hobbies."></textarea>
-                        <div class="tooltip ml-2 inline-block">
+                        <div class="tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                             </svg>
@@ -127,7 +127,7 @@
 
                 <div class="mt-8 space-y-6">
                     <div class="form-group">
-                        <h3 class="block mb-4 font-medium">Estimate Type</h3>
+                        <h3 class="block mb-4 font-medium">Return Models</h3>
                         <div class="relative flex space-x-6">
                             <div class="flex items-center">
                                 <input type="radio" id="underestimate" name="estimate" value="underestimate" class="w-4 h-4">
@@ -135,13 +135,13 @@
                             </div>
                             <div class="flex items-center">
                                 <input type="radio" id="risk" name="estimate" value="risk" checked class="w-4 h-4">
-                                <label for="risk" class="ml-2">Risk Estimate</label>
+                                <label for="risk" class="ml-2">Current Rates</label>
                             </div>
-                            <div class="tooltip ml-2 inline-block">
+                            <div class="tooltip">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                                 </svg>
-                                <span class="tooltip-text">Underestimate lowers returns for safety; Risk uses current averages.</span>
+                                <span class="tooltip-text">"Underestimate" uses conservative returns (9.5% stocks, 2% bonds) - the safe option to guarantee your minimum outcome. "Current Rates" uses recent average returns (11.5% stocks, 4% bonds).</span>
                             </div>
                         </div>
                     </div>
@@ -161,7 +161,7 @@
                                 <input type="radio" id="passive" name="aggression" value="passive" class="w-4 h-4">
                                 <label for="passive" class="ml-2">Passive</label>
                             </div>
-                            <div class="tooltip ml-2 inline-block">
+                            <div class="tooltip">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                                 </svg>
