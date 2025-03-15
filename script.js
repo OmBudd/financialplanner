@@ -46,11 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const coreExpenses = parseFloat(document.getElementById('core-expenses').value);
         const extraExpenses = parseFloat(document.getElementById('extra-expenses').value);
         const expenses = coreExpenses + extraExpenses;
-        const expensePrefs = document.getElementById('expense-prefs').value;
         
         // Get selected return model and aggression level
         const returnModel = document.querySelector('input[name="estimate"]:checked').value;
-        const aggressionLevel = document.querySelector('input[name="aggression"]:checked').value;
+        const riskAppetite = document.querySelector('input[name="risk-appetite"]:checked').value;
 
         // Validation
         if (totalComp <= 0 || age < 18 || taxRate < 0 || taxRate > 100) {
@@ -74,14 +73,17 @@ document.addEventListener('DOMContentLoaded', function() {
             bondReturn = 0.02;   // 2%
             annualRaisePercent = 0.03; // 3% annual raise
         }
+        
+        // Annual expense inflation rate (5%)
+        const expenseInflationRate = 0.05;
 
-        // Portfolio allocation based on aggression level
+        // Portfolio allocation based on risk appetite
         let stockPercent, bondPercent, cashPercent;
-        if (aggressionLevel === 'very-aggressive') {
+        if (riskAppetite === 'aggressive-growth') {
             stockPercent = 80;
             bondPercent = 20;
             cashPercent = 0;
-        } else if (aggressionLevel === 'aggressive') {
+        } else if (riskAppetite === 'moderate') {
             stockPercent = 70;
             bondPercent = 25;
             cashPercent = 5;
@@ -99,9 +101,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate years until retirement age (65)
         const yearsToRetire = Math.max(0, 65 - age);
         
-        // Calculate portfolio growth using compound interest formula with annual raises
+        // Calculate portfolio growth using compound interest formula with annual raises and expense inflation
         let portfolioValue = startingNetWorth;
         let currentTotalComp = totalComp;
+        let currentExpenses = expenses;
         let totalInvested = 0;
         let yearlyData = [];
         
@@ -110,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const afterTaxIncome = (currentTotalComp * (1 - taxRate / 100)) / 12;
             
             // Calculate investable amount (after expenses)
-            const investable = afterTaxIncome - expenses;
+            const investable = afterTaxIncome - currentExpenses;
             
             if (investable <= 0 && year === 0) {
                 alert('Your core + extra expenses exceed your income—cut back a bit!');
@@ -135,19 +138,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 year: year,
                 portfolioValue: portfolioValue,
                 totalInvested: totalInvested,
-                totalComp: currentTotalComp
+                totalComp: currentTotalComp,
+                expenses: currentExpenses
             });
             
             // Apply raise for next year
             currentTotalComp *= (1 + annualRaisePercent);
+            // Apply expense inflation for next year
+            currentExpenses *= (1 + expenseInflationRate);
         }
         
         // Get final values for display
         const retirement = portfolioValue;
-        const finalInvestable = (currentTotalComp * (1 - taxRate / 100)) / 12 - expenses;
+        const finalInvestable = (currentTotalComp * (1 - taxRate / 100)) / 12 - currentExpenses;
         
-        // Calculate FIRE number (25x annual expenses - 4% withdrawal rate)
+        // Calculate FIRE number (25x annual expenses - 4% withdrawal rate) based on initial expenses
         const fireNumber = expenses * 12 * 25;
+        const doubleFIRENumber = (expenses * 2) * 12 * 25;
+        const tripleFIRENumber = (expenses * 3) * 12 * 25;
+        const quadrupleFIRENumber = (expenses * 4) * 12 * 25;
+        
+        // Calculate asset breakdowns for each FIRE number
+        const fireAssetBreakdown = calculateAssetBreakdown(fireNumber, stockPercent, bondPercent, cashPercent);
+        const doubleFIREAssetBreakdown = calculateAssetBreakdown(doubleFIRENumber, stockPercent, bondPercent, cashPercent);
+        const tripleFIREAssetBreakdown = calculateAssetBreakdown(tripleFIRENumber, stockPercent, bondPercent, cashPercent);
+        const quadrupleFIREAssetBreakdown = calculateAssetBreakdown(quadrupleFIRENumber, stockPercent, bondPercent, cashPercent);
         
         // Find year when portfolio value exceeds FIRE number
         let fireYears = 0;
@@ -182,10 +197,17 @@ document.addEventListener('DOMContentLoaded', function() {
             firstYearInvestable, 
             retirement, 
             fireYears, 
-            fireNumber, 
-            expensePrefs,
+            fireNumber,
+            doubleFIRENumber, 
+            tripleFIRENumber,
+            quadrupleFIRENumber,
+            fireAssetBreakdown,
+            doubleFIREAssetBreakdown,
+            tripleFIREAssetBreakdown,
+            quadrupleFIREAssetBreakdown,
             returnModel,
-            annualRaisePercent
+            annualRaisePercent,
+            expenseInflationRate
         );
         
         // Display investment instructions
@@ -194,9 +216,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create and display the growth chart using the yearly data
         createGrowthChart(yearlyData, weightedReturn, yearsToRetire);
     }
+    
+    // Helper function to calculate asset breakdown
+    function calculateAssetBreakdown(totalAmount, stockPercent, bondPercent, cashPercent) {
+        return {
+            stocks: totalAmount * (stockPercent / 100),
+            bonds: totalAmount * (bondPercent / 100),
+            cash: totalAmount * (cashPercent / 100)
+        };
+    }
 
     // Function to display results
-    function displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, expensePrefs, returnModel, annualRaisePercent) {
+    function displayResults(afterTaxIncome, coreExpenses, extraExpenses, investable, retirement, fireYears, fireNumber, doubleFIRENumber, tripleFIRENumber, quadrupleFIRENumber, fireAssetBreakdown, doubleFIREAssetBreakdown, tripleFIREAssetBreakdown, quadrupleFIREAssetBreakdown, returnModel, annualRaisePercent, expenseInflationRate) {
         const resultsSection = document.getElementById('results');
         resultsSection.style.display = 'block';
         resultsSection.classList.add('fade-in');
@@ -216,6 +247,43 @@ document.addEventListener('DOMContentLoaded', function() {
             fireYearsText = "80+ (consider reducing expenses)";
         }
         
+        // Calculate years to 2x, 3x, and 4x FIRE
+        // Using simple estimation based on current timeline
+        let double_fire_years = fireYears * 1.5;
+        let triple_fire_years = fireYears * 1.8;
+        let quadruple_fire_years = fireYears * 2.1;
+        
+        // Format these years
+        let doubleFIREYearsText = double_fire_years;
+        let tripleFIREYearsText = triple_fire_years;
+        let quadrupleFIREYearsText = quadruple_fire_years;
+        
+        if (fireYears === Infinity) {
+            doubleFIREYearsText = tripleFIREYearsText = quadrupleFIREYearsText = "Not possible with current expenses";
+        } else if (double_fire_years > 80) {
+            doubleFIREYearsText = "80+ years";
+        } else {
+            doubleFIREYearsText = Math.round(double_fire_years) + " years";
+        }
+        
+        if (triple_fire_years > 80) {
+            tripleFIREYearsText = "80+ years";
+        } else {
+            tripleFIREYearsText = Math.round(triple_fire_years) + " years";
+        }
+        
+        if (quadruple_fire_years > 80) {
+            quadrupleFIREYearsText = "80+ years";
+        } else {
+            quadrupleFIREYearsText = Math.round(quadruple_fire_years) + " years";
+        }
+        
+        // Calculate annual withdrawal amounts for each FIRE level
+        const annualWithdrawal = expenses * 12;
+        const doubleAnnualWithdrawal = annualWithdrawal * 2;
+        const tripleAnnualWithdrawal = annualWithdrawal * 3;
+        const quadrupleAnnualWithdrawal = annualWithdrawal * 4;
+        
         resultsSection.innerHTML = `
             <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">Your Financial Plan</h2>
             
@@ -230,21 +298,97 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="mt-4 h-60"> <!-- Fixed height container for the chart -->
                     <canvas id="budgetPie"></canvas>
                 </div>
-                <p class="mt-2 text-sm">Based on your preferences (${expensePrefs}), tweak your extra spending for more fun or savings!</p>
             </div>
             
             <div class="mb-8">
                 <h3 class="text-xl font-medium mb-4 text-[#26c6b3]">Retirement Projection</h3>
-                <div class="bg-[#475569] p-4 rounded-lg">
+                <div class="bg-[#475569] p-4 rounded-lg mb-4">
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE:</span> <span class="float-right">Financial Independence, Retire Early</span></p>
+                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Current Monthly Expenses:</span> <span class="float-right">$${expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
                     <p class="py-2 border-b border-[#64748b]"><span class="font-medium">At age 65, your portfolio could be:</span> <span class="float-right">$${retirement.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
-                    <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number (25x annual expenses):</span> <span class="float-right">$${fireNumber.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
-                    <p class="py-2 text-[#26c6b3] font-medium"><span>FIRE possible in:</span> <span class="float-right">${fireYearsText} years</span></p>
                 </div>
-                <p class="mt-2 text-sm">FIRE means saving enough to live off 4% of your portfolio yearly. We've factored in an annual ${(annualRaisePercent * 100).toFixed(1)}% salary increase based on your selected return model (${returnModel === 'risk' ? 'Current Rates' : 'Underestimate'}).</p>
+                
+                <h4 class="text-lg font-medium mb-4 text-[#26c6b3]">FIRE Options Based on Monthly Spending</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- 1x FIRE Box -->
+                    <div class="bg-[#475569] p-4 rounded-lg">
+                        <h5 class="text-[#26c6b3] font-semibold mb-2">Current Lifestyle</h5>
+                        <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number:</span> <span class="float-right">$${fireNumber.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span></p>
+                        <p class="py-1 text-sm text-gray-400 border-b border-[#64748b]">Supports $${annualWithdrawal.toLocaleString('en-US', { maximumFractionDigits: 0 })} annual spending indefinitely</p>
+                        <p class="py-2 mt-1"><span class="font-medium">Years to Reach:</span> <span class="float-right">${fireYears === Infinity ? "Not possible" : Math.round(fireYears) + " years"}</span></p>
+                    </div>
+                    
+                    <!-- 2x FIRE Box -->
+                    <div class="bg-[#475569] p-4 rounded-lg">
+                        <h5 class="text-[#26c6b3] font-semibold mb-2">2x Lifestyle</h5>
+                        <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number:</span> <span class="float-right">$${doubleFIRENumber.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span></p>
+                        <p class="py-1 text-sm text-gray-400 border-b border-[#64748b]">Supports $${doubleAnnualWithdrawal.toLocaleString('en-US', { maximumFractionDigits: 0 })} annual spending indefinitely</p>
+                        <p class="py-2 mt-1"><span class="font-medium">Years to Reach:</span> <span class="float-right">${doubleFIREYearsText}</span></p>
+                    </div>
+                    
+                    <!-- 3x FIRE Box -->
+                    <div class="bg-[#475569] p-4 rounded-lg">
+                        <h5 class="text-[#26c6b3] font-semibold mb-2">3x Lifestyle</h5>
+                        <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number:</span> <span class="float-right">$${tripleFIRENumber.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span></p>
+                        <p class="py-1 text-sm text-gray-400 border-b border-[#64748b]">Supports $${tripleAnnualWithdrawal.toLocaleString('en-US', { maximumFractionDigits: 0 })} annual spending indefinitely</p>
+                        <p class="py-2 mt-1"><span class="font-medium">Years to Reach:</span> <span class="float-right">${tripleFIREYearsText}</span></p>
+                    </div>
+                    
+                    <!-- 4x FIRE Box -->
+                    <div class="bg-[#475569] p-4 rounded-lg">
+                        <h5 class="text-[#26c6b3] font-semibold mb-2">4x Lifestyle</h5>
+                        <p class="py-2 border-b border-[#64748b]"><span class="font-medium">FIRE Number:</span> <span class="float-right">$${quadrupleFIRENumber.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span></p>
+                        <p class="py-1 text-sm text-gray-400 border-b border-[#64748b]">Supports $${quadrupleAnnualWithdrawal.toLocaleString('en-US', { maximumFractionDigits: 0 })} annual spending indefinitely</p>
+                        <p class="py-2 mt-1"><span class="font-medium">Years to Reach:</span> <span class="float-right">${quadrupleFIREYearsText}</span></p>
+                    </div>
+                </div>
+                
+                <h4 class="text-lg font-medium mb-2 text-[#26c6b3]">Asset Breakdown at Each FIRE Level</h4>
+                <div class="bg-[#475569] p-4 rounded-lg">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-[#64748b]">
+                                <th class="text-left py-2">FIRE Level</th>
+                                <th class="text-right py-2">Stocks</th>
+                                <th class="text-right py-2">Bonds</th>
+                                <th class="text-right py-2">Cash</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-[#64748b]">
+                                <td class="py-2">1x FIRE</td>
+                                <td class="text-right">$${fireAssetBreakdown.stocks.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${fireAssetBreakdown.bonds.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${fireAssetBreakdown.cash.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                            </tr>
+                            <tr class="border-b border-[#64748b]">
+                                <td class="py-2">2x FIRE</td>
+                                <td class="text-right">$${doubleFIREAssetBreakdown.stocks.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${doubleFIREAssetBreakdown.bonds.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${doubleFIREAssetBreakdown.cash.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                            </tr>
+                            <tr class="border-b border-[#64748b]">
+                                <td class="py-2">3x FIRE</td>
+                                <td class="text-right">$${tripleFIREAssetBreakdown.stocks.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${tripleFIREAssetBreakdown.bonds.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${tripleFIREAssetBreakdown.cash.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2">4x FIRE</td>
+                                <td class="text-right">$${quadrupleFIREAssetBreakdown.stocks.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${quadrupleFIREAssetBreakdown.bonds.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                                <td class="text-right">$${quadrupleFIREAssetBreakdown.cash.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <p class="mt-2 text-sm">FIRE means having enough invested so you can live off your portfolio indefinitely. The 4% rule says you can safely withdraw 4% of your portfolio each year (thus needing 25x your annual expenses invested). We've factored in an annual ${(annualRaisePercent * 100).toFixed(1)}% salary increase and ${(expenseInflationRate * 100).toFixed(1)}% expense inflation based on your selected return model (${returnModel === 'risk' ? 'Current Rates' : 'Underestimate'}).</p>
             </div>
             
             <div>
                 <h3 class="text-xl font-medium mb-4 text-[#26c6b3]">Portfolio Growth Over Time</h3>
+                <p class="mb-2 text-sm italic">Hover over any point on the chart to see detailed values</p>
                 <div class="h-64">
                     <canvas id="growthChart"></canvas>
                 </div>
@@ -289,26 +433,67 @@ document.addEventListener('DOMContentLoaded', function() {
         const instructionsSection = document.getElementById('instructions');
         instructionsSection.style.display = 'block';
         instructionsSection.classList.add('fade-in');
+        
+        // Calculate specific dollar amounts for each allocation
+        const stockAmount = (investable * stockPercent / 100).toFixed(2);
+        const bondAmount = (investable * bondPercent / 100).toFixed(2);
+        const cashAmount = (investable * cashPercent / 100).toFixed(2);
+        
         instructionsSection.innerHTML = `
             <h2 class="text-2xl font-semibold mb-6 text-[#26c6b3]">Set Up Your Investments</h2>
             
+            <div class="mb-6 bg-[#2a384d] p-4 rounded-lg">
+                <h3 class="text-lg font-medium mb-2 text-[#26c6b3]">What Are Stocks and Bonds?</h3>
+                <p class="mb-2"><strong>Stocks (Index Funds):</strong> When you buy stocks, you're buying small pieces of many companies. Instead of picking individual companies, you'll invest in "index funds" which automatically buy pieces of hundreds or thousands of companies at once—making you an owner in the entire stock market. This gives you instant diversification without needing expert knowledge.</p>
+                <p><strong>Bonds:</strong> These are loans you make to the government or companies that pay you back with interest. U.S. Treasury bonds are considered among the safest investments since they're backed by the government. Bonds typically provide steady income with less volatility than stocks.</p>
+            </div>
+            
+            <div class="mb-6 bg-[#475569] p-4 rounded-lg">
+                <h3 class="text-lg font-medium mb-2 text-[#26c6b3]">Your Personalized Investment Plan</h3>
+                <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Total Monthly Investment:</span> <span class="float-right">$${investable.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></p>
+                <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Stocks (${stockPercent}%):</span> <span class="float-right">$${parseFloat(stockAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} per month</span></p>
+                <p class="py-2 border-b border-[#64748b]"><span class="font-medium">Bonds (${bondPercent}%):</span> <span class="float-right">$${parseFloat(bondAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} per month</span></p>
+                ${cashPercent > 0 ? `<p class="py-2 border-b border-[#64748b]"><span class="font-medium">Cash (${cashPercent}%):</span> <span class="float-right">$${parseFloat(cashAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} per month</span></p>` : ''}
+            </div>
+            
+            <h3 class="text-lg font-medium mb-3 text-[#26c6b3]">Step-by-Step Investment Setup</h3>
             <ol class="list-decimal pl-6 space-y-4">
-                <li class="pl-2">Go to <a href="https://www.fidelity.com" target="_blank" class="text-[#26c6b3] hover:underline">fidelity.com</a> and click 'Open an Account' (Brokerage Account).</li>
-                <li class="pl-2">Link your bank account: log into your bank (e.g., Chase), find 'Transfers,' and add Fidelity (routing/account numbers from Fidelity).</li>
-                <li class="pl-2">Set up payroll: in your job's HR portal, split direct deposit—${stockPercent + bondPercent}% to Fidelity, ${cashPercent}% to your bank.</li>
-                <li class="pl-2">Deposit $${investable.toLocaleString('en-US', { minimumFractionDigits: 2 })} monthly into Fidelity.</li>
-                <li class="pl-2">Buy VTI (stocks) for ${stockPercent}%—search 'VTI,' enter amount, set to repeat monthly.</li>
-                <li class="pl-2">Buy US Treasuries (bonds) for ${bondPercent}%—search 'Treasuries,' pick a term (e.g., 10-year), automate it.</li>
-                ${cashPercent > 0 ? `<li class="pl-2">Keep ${cashPercent}% in your bank or Fidelity cash account.</li>` : ''}
-                <li class="pl-2">In Fidelity, go to 'Automatic Investments,' set VTI and Treasuries to buy monthly with your deposit.</li>
+                <li class="pl-2"><strong>Create your account:</strong> Go to <a href="https://www.fidelity.com" target="_blank" class="text-[#26c6b3] hover:underline">fidelity.com</a> and click 'Open an Account' to create a personal brokerage account (no minimums and no fees).</li>
+                
+                <li class="pl-2"><strong>Link your bank:</strong> Once your account is created, go to "Transfers" and select "Link a bank account." You'll need your bank's routing number and your account number, which can be found on your checks or in your bank's app.</li>
+                
+                <li class="pl-2"><strong>Set up automatic transfers:</strong> Set up a recurring transfer of $${investable.toLocaleString('en-US', { minimumFractionDigits: 2 })} from your bank to Fidelity each month, timed to occur right after your paycheck arrives.</li>
+                
+                <li class="pl-2"><strong>Buy VTI (stocks):</strong> In your Fidelity account, search for ticker "VTI" (Vanguard Total Stock Market ETF). Set up an automatic investment of $${parseFloat(stockAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} each month (${stockPercent}% of your investment).</li>
+                
+                <li class="pl-2"><strong>Buy Treasury Bonds:</strong> In Fidelity, go to "Fixed Income" > "Bonds & CDs" > "Treasury Bonds" and purchase individual U.S. Treasury bonds with $${parseFloat(bondAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} (${bondPercent}% of your investment). Choose a mix of different maturities (2-year, 5-year, and 10-year) for steady income.</li>
+                
+                ${cashPercent > 0 ? `<li class="pl-2"><strong>Cash reserves:</strong> Keep $${parseFloat(cashAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })} (${cashPercent}%) in a high-yield savings account or Fidelity's money market fund (search for "SPAXX").</li>` : ''}
+                
+                <li class="pl-2"><strong>Automate everything:</strong> In Fidelity, go to "Account Features" then "Automatic Investments" to schedule your stock and bond purchases to happen automatically after your monthly deposit arrives.</li>
+            </ol>
+            
+            <h3 class="text-lg font-medium mt-6 mb-3 text-[#26c6b3]">Building Your Credit Score</h3>
+            <ol class="list-decimal pl-6 space-y-4">
+                <li class="pl-2"><strong>Start with a beginner card:</strong> Apply for a credit card like Chase Freedom Unlimited, Discover it, or if you're a student, a student card. These often have no annual fees.</li>
+                
+                <li class="pl-2"><strong>Set up autopay:</strong> In your credit card account, set up automatic payments to pay the statement balance in full each month. This avoids interest charges and builds your credit score.</li>
+                
+                <li class="pl-2"><strong>Keep utilization low:</strong> Try to use less than 30% of your available credit limit each month to maximize your credit score.</li>
+                
+                <li class="pl-2"><strong>Don't close old accounts:</strong> Length of credit history matters, so keep your oldest accounts open even if you don't use them often.</li>
             </ol>
             
             <div class="mt-6 bg-[#2a384d] p-4 rounded-lg">
-                <p class="text-[#26c6b3]"><strong>Pro Tip:</strong> VTI tracks the US market—perfect for growth! Add VXUS for global stocks if you want to spread your bets further.</p>
+                <p class="text-[#26c6b3]"><strong>Pro Tip #1:</strong> VTI tracks the entire US market—it's one fund with instant diversification across thousands of companies. Perfect for beginners and experts alike!</p>
+            </div>
+            
+            <div class="mt-3 bg-[#2a384d] p-4 rounded-lg">
+                <p class="text-[#26c6b3]"><strong>Pro Tip #2:</strong> As your investments grow, you can use them as collateral for low-interest loans (margin or portfolio line of credit) instead of selling assets and triggering taxes. This lets your investments continue growing while accessing funds for major purchases.</p>
             </div>
             
             <div class="mt-6">
-                <p>This simple 3-fund portfolio (stocks, bonds, cash) is all you need to start building wealth. Stay the course during market ups and downs!</p>
+                <p>This simple portfolio is all you need to start building wealth. The key is consistency—stay the course during market ups and downs, and keep automatically investing every month. The best part? Once you set up these automations, you can focus on enjoying life while your money works for you.</p>
             </div>
         `;
     }
